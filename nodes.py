@@ -2,44 +2,39 @@ import comfy.model_management
 import gc
 from comfy.patcher_extension import CallbacksMP
 from comfy.model_patcher import ModelPatcher
-from comfy.model_base import HunyuanVideo
+from comfy.model_base import WAN21
 
-#Based on https://github.com/kijai/ComfyUI-HunyuanVideoWrapper
-class HunyuanVideoBlockSwap:
+#Based on https://github.com/kijai/ComfyUI-WanVideoWrapper
+class WanVideoBlockSwap:
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
                 "model": ("MODEL",),
-                "double_blocks_to_swap": ("INT", {"default": 20, "min": 0, "max": 20, "step": 1, "tooltip": "Number of double blocks to swap"}),
-                "single_blocks_to_swap": ("INT", {"default": 0, "min": 0, "max": 40, "step": 1, "tooltip": "Number of single blocks to swap"}),
-                "offload_txt_in": ("BOOLEAN", {"default": False, "tooltip": "Offload txt_in layer"}),
-                "offload_img_in": ("BOOLEAN", {"default": False, "tooltip": "Offload img_in layer"}),
+                "blocks_to_swap": ("INT", {"default": 20, "min": 0, "max": 40, "step": 1, "tooltip": "Number of transformer blocks to swap, the 14B model has 40, while the 1.3B model has 30 blocks"}),
+                "offload_img_emb": ("BOOLEAN", {"default": False, "tooltip": "Offload img_emb to offload_device"}),
+                "offload_txt_emb": ("BOOLEAN", {"default": False, "tooltip": "Offload time_emb to offload_device"}),
             },
         }
     RETURN_TYPES = ("MODEL",)
-    CATEGORY = "ComfyUI-hvBlockswap"
+    CATEGORY = "ComfyUI-wvBlockswap"
     FUNCTION = "set_callback"
 
-    def set_callback(self, model: ModelPatcher, double_blocks_to_swap, single_blocks_to_swap, offload_txt_in, offload_img_in):
+    def set_callback(self, model: ModelPatcher, blocks_to_swap, offload_img_emb, offload_txt_emb):
         
         def swap_blocks(model: ModelPatcher, device_to, lowvram_model_memory, force_patch_weights, full_load):
             base_model = model.model
-            if isinstance(base_model, HunyuanVideo):
+            if isinstance(base_model, WAN21):
                 unet = base_model.diffusion_model
-                for b, block in enumerate(unet.double_blocks):
-                    if b < double_blocks_to_swap:
+                for b, block in enumerate(unet.blocks):
+                    if b < blocks_to_swap:
                         block.to(model.offload_device)
 
-                for b, block in enumerate(unet.single_blocks):
-                    if b < single_blocks_to_swap:
-                        block.to(model.offload_device)
-                        
-                if offload_txt_in:
-                    unet.txt_in.to(model.offload_device)
-                if offload_img_in:
-                    unet.img_in.to(model.offload_device)
-
+                if offload_txt_emb:
+                    unet.text_embedding.to(model.offload_device)
+                if offload_img_emb:
+                    unet.img_emb.to(model.offload_device)
+            
             comfy.model_management.soft_empty_cache()
             gc.collect()
         
@@ -49,9 +44,9 @@ class HunyuanVideoBlockSwap:
         return (model, )
 
 NODE_CLASS_MAPPINGS = {
-    "hvBlockSwap": HunyuanVideoBlockSwap
+    "wvBlockSwap": WanVideoBlockSwap
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "hvBlockSwap": "HunyuanVideoBlockSwap"
+    "wvBlockSwap": "WanVideoBlockSwap"
 }
