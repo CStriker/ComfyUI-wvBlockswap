@@ -1,4 +1,4 @@
-### ComfyUI-hvBlockSwap
-It is a simple HunyuanVideo block swap node for ComfyUI native nodes.
+### ComfyUI-wvBlockSwap
+It is a simple WanVideo block swap node for ComfyUI native nodes.
 
-![image](./samples/usage.png)
+Original author for HunyuanVideo: [ComfyUI-hvBlockswap](https://github.com/fluffydiveX/ComfyUI-hvBlockswap)
